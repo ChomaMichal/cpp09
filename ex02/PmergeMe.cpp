@@ -149,7 +149,7 @@ bool r_pair_comp(r_pair *v1, r_pair *v2) {
   i++;
   // std::cerr << i << " comperesons were done\n";
 #endif // DEBUG
-  return (v1->bigger > v2->bigger);
+  return (v1->bigger < v2->bigger);
 }
 
 std::vector<r_pair *> insertions(std::vector<r_pair *> array,
@@ -165,9 +165,11 @@ std::vector<r_pair *> insertions(std::vector<r_pair *> array,
   while (true) {
     ulong in_pos = nex_jac_number(current, prev);
     if (in_pos == 1) {
-      rt.push_back((*pushed)->rest_smaller);
-      std::cout << "pushing this number " << (*pushed)->rest_smaller->bigger
-                << std::endl;
+      if ((*pushed)->alone == false) {
+        rt.push_back((*pushed)->rest_smaller);
+        std::cout << "pushing this number " << (*pushed)->rest_smaller->bigger
+                  << std::endl;
+      }
       rt.push_back((*pushed)->rest_bigger);
       std::cout << "pushing this number " << (*pushed)->rest_bigger->bigger
                 << std::endl;
@@ -190,75 +192,112 @@ std::vector<r_pair *> insertions(std::vector<r_pair *> array,
     if (unsorted == array.end())
       unsorted--;
     while (unsorted != sorted) {
-      std::vector<r_pair *>::iterator pos = std::lower_bound(
-          rt.begin(), std::find(rt.begin(), rt.end(), (*unsorted)->rest_bigger),
-          (*unsorted)->rest_smaller, r_pair_comp);
-      rt.insert(pos, (*unsorted)->rest_smaller);
+      if ((*unsorted)->alone == false) {
+        std::vector<r_pair *>::iterator pos = std::lower_bound(
+            rt.begin(),
+            std::find(rt.begin(), rt.end(), (*unsorted)->rest_bigger),
+            (*unsorted)->rest_smaller, r_pair_comp);
+        rt.insert(pos, (*unsorted)->rest_smaller);
 
-      std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
-                << std::endl;
+        std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
+                  << std::endl;
+      }
       unsorted--;
     }
 
-    std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
-              << std::endl;
+    // std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
+    //           << std::endl;
     sorted = pushed;
   }
 
   if (left_out != NULL) {
     std::vector<r_pair *>::iterator pos =
         std::lower_bound(rt.begin(), rt.end(), left_out, r_pair_comp);
-    rt.insert(pos, left_out);
+    rt.insert(pos, left_out->rest_bigger);
+    delete left_out;
   }
 
-  std::cout << rt.size() << " :priting rt.size()\n";
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+  // std::cout << rt.size() << " :priting rt.size()\n";
   return (rt);
 }
 
 bool int_addr_cmp(int *i, int *j) { return (*i < *j); }
 
-std::vector<int> reconstruct_vec(std::vector<r_pair *> array) {
+std::vector<int> last_insercion(std::vector<r_pair *> array, r_pair *left_out) {
+  std::cout << "begining of insertions array.size(): " << array.size()
+            << std::endl;
   ulong current = 0;
   ulong prev = 0;
   std::vector<int *> tmp;
-  std::vector<r_pair *>::iterator iter = array.begin();
+  std::vector<r_pair *>::iterator pushed = array.begin();
+  std::vector<r_pair *>::iterator sorted = array.begin();
+
   while (true) {
     ulong in_pos = nex_jac_number(current, prev);
-    std::cout << "\nin_pos in loop " << in_pos << std::endl;
-    std::cout << "current in loop " << current << std::endl;
-    std::cout << "prev in loop " << prev << std::endl;
     if (in_pos == 1) {
-      tmp.push_back(&(*iter)->smaller);
-      tmp.push_back(&(*iter)->bigger);
-      iter++;
+      if ((*pushed)->alone == false) {
+        tmp.push_back(&(*pushed)->smaller);
+        std::cout << "pushing this number " << (*pushed)->smaller << std::endl;
+      }
+      tmp.push_back(&(*pushed)->bigger);
+      std::cout << "pushing this number " << (*pushed)->bigger << std::endl;
       continue;
     }
-    if (in_pos > array.size())
-      in_pos = array.size() - 1;
-    if (prev >= array.size()) {
-      std::cout << array.size() << " array size" << std::endl;
-      std::cout << prev << " prev" << std::endl;
-      std::cout << in_pos << " in_pos" << std::endl;
+    if (current > array.size())
+      in_pos = array.size();
+
+    if (prev >= array.size())
       break;
+    for (ulong i = prev; i < in_pos; i++) {
+      pushed++;
+      if (pushed == array.end())
+        break;
+      tmp.push_back(&(*pushed)->bigger);
+      std::cout << "pushing this number " << (*pushed)->bigger << std::endl;
     }
-    for (int i = 0; in_pos > prev + i; i++) {
-      tmp.push_back(&(*iter)->bigger);
-      iter++;
+    std::vector<r_pair *>::iterator unsorted = pushed;
+    if (unsorted == array.end())
+      unsorted--;
+    while (unsorted != sorted) {
+      if ((*unsorted)->alone == false) {
+        std::vector<int *>::iterator pos = std::lower_bound(
+            tmp.begin(),
+            std::find(tmp.begin(), tmp.end(), &(*unsorted)->bigger),
+            &(*unsorted)->smaller, int_addr_cmp);
+        tmp.insert(pos, &(*unsorted)->smaller);
+
+        std::cout << "pushing this number " << (*unsorted)->smaller
+                  << std::endl;
+      }
+      unsorted--;
     }
-    iter--;
-    std::vector<r_pair *>::iterator in_iter = iter;
-    for (int i = 0; in_pos > prev + i; i++) {
-      std::vector<int *>::iterator pos = std::lower_bound(
-          tmp.begin(), std::find(tmp.begin(), tmp.end(), &(*in_iter)->bigger),
-          &(*in_iter)->smaller, int_addr_cmp);
-      tmp.insert(pos, &(*in_iter)->smaller);
-      in_iter--;
-    }
+
+    // std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
+    //           << std::endl;
+    sorted = pushed;
   }
+
+  if (left_out != NULL) {
+    std::vector<int *>::iterator pos = std::lower_bound(
+        tmp.begin(), tmp.end(), &left_out->bigger, int_addr_cmp);
+    tmp.insert(pos, &left_out->bigger);
+  }
+
   std::vector<int> rt;
+
   for (std::vector<int *>::iterator i = tmp.begin(); i != tmp.end(); i++) {
     rt.push_back(**i);
   }
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+  delete left_out;
+  // std::cout << rt.size() << " :priting rt.size()\n";
   return (rt);
 }
 
@@ -292,7 +331,7 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
   print_r_pair(pair[0]);
   std::cout << " pair before insertion" << std::endl;
   std::cout << "-----------------------------------------" << std::endl;
-  while (pair[0]->rest_smaller != NULL) {
+  while (pair[0]->rest_bigger != NULL) {
     pair = insertions(pair, left_out.back());
     for (size_t i = 0; i < pair.size(); i++) {
       if (pair[i] != NULL) {
@@ -306,8 +345,8 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
     left_out.pop_back();
   }
 
-  std::vector<int> rt = reconstruct_vec(pair);
-  std::cout << rt.size() << "rt size " << std::endl;
+  std::vector<int> rt = last_insercion(pair, left_out.back());
+  std::cout << rt.size() << " :rt size " << std::endl;
   print_c(rt);
   return (rt);
   // std::cout << left_out.size() << std::endl;

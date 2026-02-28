@@ -39,52 +39,17 @@ ulong nex_jac_number(ulong &curent, ulong &prev) {
 }
 
 std::vector<r_pair *> create_pair(std::vector<int> &vec) {
-  std::vector<int>::iterator iter = vec.begin();
+  auto iter = vec.begin();
   std::vector<r_pair *> rt;
-  while (true) {
-    std::vector<int>::iterator el1 = iter;
+  while (iter != vec.end()) {
+    r_pair *pair = new r_pair();
+    pair->bigger = *iter;
+    pair->smaller = -1;
+    pair->rest_smaller = NULL;
+    pair->rest_bigger = NULL;
     iter++;
-    if (iter == vec.end()) {
-      r_pair *single = new r_pair();
-      single->bigger = (*el1);
-      single->rest_bigger = NULL;
-      single->rest_smaller = NULL;
-      single->alone = true;
-      rt.push_back(single);
-      break;
-    }
-    std::vector<int>::iterator el2 = iter;
-    if ((*el1) > (*el2)) {
-      r_pair *pair = new r_pair();
-      pair->bigger = (*el1);
-      pair->rest_bigger = NULL;
-      pair->smaller = (*el2);
-      pair->rest_smaller = new r_pair();
-      pair->rest_smaller->bigger = pair->smaller;
-      pair->rest_smaller->rest_smaller = NULL;
-      pair->rest_smaller->rest_bigger = NULL;
-      pair->alone = false;
-      rt.push_back(pair);
-    } else {
-      r_pair *pair = new r_pair();
-      pair->bigger = (*el2);
-      pair->rest_bigger = NULL;
-      pair->smaller = (*el1);
-      pair->rest_smaller = new r_pair();
-      pair->rest_smaller->bigger = pair->smaller;
-      pair->rest_smaller->rest_smaller = NULL;
-      pair->rest_smaller->rest_bigger = NULL;
-      pair->alone = false;
-      rt.push_back(pair);
-    }
-    iter++;
-    if (iter == vec.end())
-      break;
+    rt.push_back(pair);
   }
-  // for (int i = 0; i != rt.size(); i++) {
-  //   print_r_pair(rt[i]);
-  //   std::cout << " in first iteration\n";
-  // }
   return (rt);
 }
 
@@ -272,15 +237,7 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
   // return;
   auto pair = create_pair(vec);
   std::vector<r_pair *> left_out;
-  std::cout << (pair.back())->alone << " :alone\n";
-  if (pair.back()->alone == true) {
-    left_out.push_back(pair.back());
-    pair.pop_back();
-  } else {
-    left_out.push_back(NULL);
-  }
-  std::cout << std::endl;
-  while (pair.empty() == false && pair[0]->rest_bigger != NULL) {
+  while (pair.size() != 1) {
     pair = create_pair(pair);
     std::cout << pair.back()->alone << " :alone\n";
     if (pair.back()->alone == true) {

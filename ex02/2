@@ -3,28 +3,6 @@
 #include <cmath>
 #include <vector>
 
-void print_r_pair(r_pair *pair) {
-  if (pair == NULL)
-    return;
-  if (pair->alone == true) {
-    if (pair->rest_bigger == NULL) {
-      std::cout << "[" << pair->bigger << "]";
-      return;
-    }
-    print_r_pair(pair->rest_bigger);
-    return;
-  }
-
-  if (pair->rest_bigger == NULL) {
-    std::cout << "[" << pair->bigger << ", " << pair->smaller << "]";
-    return;
-  }
-  std::cout << "[";
-  print_r_pair(pair->rest_bigger);
-  std::cout << ", ";
-  print_r_pair(pair->rest_smaller);
-  std::cout << "]";
-}
 std::vector<int> jac_sequence_n(int n) {
   std::vector<int> rt;
   if (n <= 0)
@@ -147,72 +125,77 @@ bool r_pair_comp(r_pair *v1, r_pair *v2) {
 #ifdef DEBUG
   static int i = 0;
   i++;
-  // std::cerr << i << " comperesons were done\n";
+  std::cerr << i << " comperesons were done\n";
 #endif // DEBUG
   return (v1->bigger > v2->bigger);
 }
 
 std::vector<r_pair *> insertions(std::vector<r_pair *> array,
                                  r_pair *left_out) {
-  std::cout << "begining of insertions array.size(): " << array.size()
-            << std::endl;
   ulong current = 0;
   ulong prev = 0;
   std::vector<r_pair *> rt;
-  std::vector<r_pair *>::iterator pushed = array.begin();
-  std::vector<r_pair *>::iterator sorted = array.begin();
-
+  std::vector<r_pair *>::iterator iter = array.begin();
   while (true) {
     ulong in_pos = nex_jac_number(current, prev);
     if (in_pos == 1) {
-      rt.push_back((*pushed)->rest_smaller);
-      std::cout << "pushing this number " << (*pushed)->rest_smaller->bigger
-                << std::endl;
-      rt.push_back((*pushed)->rest_bigger);
-      std::cout << "pushing this number " << (*pushed)->rest_bigger->bigger
-                << std::endl;
+      rt.push_back((*iter)->rest_smaller);
+      rt.push_back((*iter)->rest_bigger);
+      iter++;
       continue;
     }
-    if (current > array.size())
-      in_pos = array.size();
-
+    if (in_pos > array.size())
+      in_pos = array.size() - 1;
     if (prev >= array.size())
       break;
-    for (ulong i = prev; i < in_pos; i++) {
-      pushed++;
-      if (pushed == array.end())
-        break;
-      rt.push_back((*pushed)->rest_bigger);
-      std::cout << "pushing this number " << (*pushed)->rest_bigger->bigger
-                << std::endl;
+    for (int i = 0; in_pos > prev + i; i++) {
+      rt.push_back((*iter)->rest_bigger);
+      iter++;
     }
-    std::vector<r_pair *>::iterator unsorted = pushed;
-    if (unsorted == array.end())
-      unsorted--;
-    while (unsorted != sorted) {
+
+    std::vector<r_pair *>::iterator in_iter = iter;
+    for (int i = 0; in_pos > prev + 1; i++) {
       std::vector<r_pair *>::iterator pos = std::lower_bound(
-          rt.begin(), std::find(rt.begin(), rt.end(), (*unsorted)->rest_bigger),
-          (*unsorted)->rest_smaller, r_pair_comp);
-      rt.insert(pos, (*unsorted)->rest_smaller);
-
-      std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
-                << std::endl;
-      unsorted--;
+          rt.begin(), std::find(rt.begin(), rt.end(), (*in_iter)->rest_bigger),
+          (*in_iter)->rest_smaller, r_pair_comp);
+      rt.insert(pos, (*in_iter)->rest_smaller);
+      in_iter--;
     }
-
-    std::cout << "pushing this number " << (*unsorted)->rest_smaller->bigger
-              << std::endl;
-    sorted = pushed;
   }
-
   if (left_out != NULL) {
-    std::vector<r_pair *>::iterator pos =
-        std::lower_bound(rt.begin(), rt.end(), left_out, r_pair_comp);
-    rt.insert(pos, left_out);
+    std::vector<r_pair *>::iterator pos = std::lower_bound(
+        rt.begin(), rt.end(), left_out->rest_bigger, r_pair_comp);
+    rt.insert(pos, left_out->rest_bigger);
+    delete left_out;
+  }
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+  return (rt);
+}
+
+void print_r_pair(r_pair *pair) {
+  if (pair == NULL)
+    return;
+  if (pair->alone == true) {
+    if (pair->rest_bigger == NULL) {
+      std::cout << "[" << pair->bigger << "]";
+      return;
+    }
+    print_r_pair(pair->rest_bigger);
+    return;
   }
 
-  std::cout << rt.size() << " :priting rt.size()\n";
-  return (rt);
+  if (pair->rest_bigger == NULL) {
+    std::cout << "[" << pair->bigger << ", " << pair->smaller << "]";
+    return;
+  }
+  std::cout << "[";
+  print_r_pair(pair->rest_bigger);
+  std::cout << ", ";
+  print_r_pair(pair->rest_smaller);
+  std::cout << "]";
 }
 
 bool int_addr_cmp(int *i, int *j) { return (*i < *j); }
@@ -224,9 +207,6 @@ std::vector<int> reconstruct_vec(std::vector<r_pair *> array) {
   std::vector<r_pair *>::iterator iter = array.begin();
   while (true) {
     ulong in_pos = nex_jac_number(current, prev);
-    std::cout << "\nin_pos in loop " << in_pos << std::endl;
-    std::cout << "current in loop " << current << std::endl;
-    std::cout << "prev in loop " << prev << std::endl;
     if (in_pos == 1) {
       tmp.push_back(&(*iter)->smaller);
       tmp.push_back(&(*iter)->bigger);
@@ -245,9 +225,9 @@ std::vector<int> reconstruct_vec(std::vector<r_pair *> array) {
       tmp.push_back(&(*iter)->bigger);
       iter++;
     }
-    iter--;
+
     std::vector<r_pair *>::iterator in_iter = iter;
-    for (int i = 0; in_pos > prev + i; i++) {
+    for (int i = 0; in_pos > prev + 1; i++) {
       std::vector<int *>::iterator pos = std::lower_bound(
           tmp.begin(), std::find(tmp.begin(), tmp.end(), &(*in_iter)->bigger),
           &(*in_iter)->smaller, int_addr_cmp);
@@ -262,6 +242,56 @@ std::vector<int> reconstruct_vec(std::vector<r_pair *> array) {
   return (rt);
 }
 
+/*
+std::vector<r_pair *> last_insercion(std::vector<r_pair *> array,
+                                     r_pair *left_out) {
+  ulong current = 0;
+  ulong prev = 0;
+  std::vector<r_pair *> rt;
+  std::vector<r_pair *>::iterator iter = array.begin();
+  while (true) {
+    ulong in_pos = nex_jac_number(current, prev);
+    if (in_pos == 1) {
+      rt.push_back((*iter)->rest_smaller);
+      rt.push_back((*iter)->rest_bigger);
+      iter++;
+      continue;
+    }
+    if (in_pos > array.size())
+      in_pos = array.size() - 1;
+    if (prev > array.size())
+      return rt;
+    while (in_pos > prev) {
+
+      for (int i = 0; in_pos > prev + i; i++) {
+        rt.push_back((*iter)->rest_bigger);
+        iter++;
+      }
+
+      std::vector<r_pair *>::iterator in_iter = iter;
+      for (int i = 0; in_pos > prev + 1; i++) {
+        std::vector<r_pair *>::iterator pos = std::lower_bound(
+            rt.begin(),
+            std::find(rt.begin(), rt.end(), (*in_iter)->rest_bigger),
+            (*in_iter)->rest_smaller, r_pair_comp);
+        rt.insert(pos, (*in_iter)->rest_smaller);
+        in_iter--;
+      }
+    }
+  }
+  if (left_out != NULL) {
+    std::vector<r_pair *>::iterator pos = std::lower_bound(
+        rt.begin(), rt.end(), left_out->rest_bigger, r_pair_comp);
+    rt.insert(pos, left_out->rest_bigger);
+    delete left_out;
+  }
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+}
+*/
+
 std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
 
   // auto hehe = jac_sequence_n(9);
@@ -269,7 +299,7 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
   // return;
   auto pair = create_pair(vec);
   std::vector<r_pair *> left_out;
-  // std::cout << (pair.back())->alone << " :alone\n";
+  std::cout << (pair.back())->alone << " :alone\n";
   if (pair.back()->alone == true) {
     left_out.push_back(pair.back());
     pair.pop_back();
@@ -278,9 +308,8 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
   }
   std::cout << std::endl;
   while (pair.size() != 1) {
-    // std::cout << pair.size() << " size of pair.size() in loop" << std::endl;
     pair = create_pair(pair);
-    // std::cout << pair.back()->alone << " :alone\n";
+    std::cout << pair.back()->alone << " :alone\n";
     if (pair.back()->alone == true) {
       left_out.push_back(pair.back());
       pair.pop_back();
@@ -288,13 +317,11 @@ std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
       left_out.push_back(NULL);
     }
   }
-  std::cout << pair.size() << " size of pair.size() in main" << std::endl;
   print_r_pair(pair[0]);
   std::cout << " pair before insertion" << std::endl;
-  std::cout << "-----------------------------------------" << std::endl;
   while (pair[0]->rest_smaller != NULL) {
     pair = insertions(pair, left_out.back());
-    for (size_t i = 0; i < pair.size(); i++) {
+    for (int i = 0; i < pair.size(); i++) {
       if (pair[i] != NULL) {
         std::cout << "\n" << i << " = i\n";
         print_r_pair(pair[i]);

@@ -1,7 +1,8 @@
 NAME = RPN
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -std=c++98 -g
-FILES = main.cpp
+FILES = main.cpp, PmergeMe.cpp
+HFILES = PmergeMe.hpp
 		
 
 OBJ = $(FILES:.cpp=.o)

@@ -14,7 +14,7 @@ std::vector<int> process_input(char **argv) {
     errno = 0;
     char *errcheck;
     long tmp = std::strtol(argv[i], &errcheck, 10);
-    if (errno == ERANGE || tmp < INT_MIN || tmp > INT_MAX)
+    if (errno == ERANGE || tmp < 0 || tmp > INT_MAX)
       throw(std::runtime_error("Overflow detected in inout"));
     if (*errcheck != 0) {
       throw(std::runtime_error("Invalid argument"));
@@ -22,23 +22,6 @@ std::vector<int> process_input(char **argv) {
     rt.push_back(tmp);
   }
   return (rt);
-}
-
-template <typename T>
-
-void print_c(T &val) {
-  std::cout << "[";
-  typename T::iterator iter = val.begin();
-  if (iter == val.end())
-    return;
-  while (true) {
-    std::cout << *iter;
-    iter++;
-    if (iter == val.end())
-      break;
-    std::cout << ", ";
-  }
-  std::cout << "]" << std::endl;
 }
 
 int main(int argc, char **argv) {

@@ -1,15 +1,41 @@
 #include "PmergeMe.hpp"
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
 std::vector<int> jac_sequence_n(int n) {
   std::vector<int> rt;
-  for (size_t i = 0; i < n; i++) {
-    int tmp = (std::pow(2, i + 1) + (-1 * (i % 2))) / 3;
-    std::cout << tmp << std::endl;
-    rt.push_back(tmp);
+  if (n <= 0)
+    return rt;
+
+  rt.push_back(0); // J(0)
+  if (n == 1)
+    return rt;
+
+  rt.push_back(1); // J(1)
+
+  for (int i = 2; i < n; ++i) {
+    rt.push_back(rt[i - 1] + 2 * rt[i - 2]);
   }
-  return (rt);
+
+  return rt;
+}
+
+ulong nex_jac_number(ulong &curent, ulong &prev) {
+  if (curent == 0) {
+    curent = 1;
+    prev = 0;
+    return 1;
+  }
+  if (curent == 1) {
+    curent = 3;
+    prev = 1;
+    return 3;
+  }
+  ulong pair = curent;
+  curent = curent + 2 * prev;
+  prev = pair;
+  return (curent);
 }
 
 std::vector<r_pair *> create_pair(std::vector<int> &vec) {
@@ -33,7 +59,10 @@ std::vector<r_pair *> create_pair(std::vector<int> &vec) {
       pair->bigger = (*el1);
       pair->rest_bigger = NULL;
       pair->smaller = (*el2);
-      pair->rest_smaller = NULL;
+      pair->rest_smaller = new r_pair();
+      pair->rest_smaller->bigger = pair->smaller;
+      pair->rest_smaller->rest_smaller = NULL;
+      pair->rest_smaller->rest_bigger = NULL;
       pair->alone = false;
       rt.push_back(pair);
     } else {
@@ -41,7 +70,10 @@ std::vector<r_pair *> create_pair(std::vector<int> &vec) {
       pair->bigger = (*el2);
       pair->rest_bigger = NULL;
       pair->smaller = (*el1);
-      pair->rest_smaller = NULL;
+      pair->rest_smaller = new r_pair();
+      pair->rest_smaller->bigger = pair->smaller;
+      pair->rest_smaller->rest_smaller = NULL;
+      pair->rest_smaller->rest_bigger = NULL;
       pair->alone = false;
       rt.push_back(pair);
     }
@@ -63,10 +95,11 @@ std::vector<r_pair *> create_pair(std::vector<r_pair *> &pairs) {
     std::vector<r_pair *>::iterator el1 = iter;
     iter++;
     if (iter == pairs.end()) {
-      r_pair single;
-      single.bigger = (*el1)->bigger;
-      single.rest_bigger = &*(*el1);
-      single.alone = true;
+      r_pair *single = new r_pair();
+      single->bigger = (*el1)->bigger;
+      single->rest_bigger = &*(*el1);
+      single->alone = true;
+      rt.push_back(single);
       break;
     }
     std::vector<r_pair *>::iterator el2 = iter;
@@ -94,11 +127,72 @@ std::vector<r_pair *> create_pair(std::vector<r_pair *> &pairs) {
   return (rt);
 }
 
+bool r_pair_comp(r_pair *v1, r_pair *v2) {
+#ifdef DEBUG
+  static int i = 0;
+  i++;
+  std::cerr << i << " comperesons were done\n";
+#endif // DEBUG
+  return (v1->bigger > v2->bigger);
+}
+
+std::vector<r_pair *> insertions(std::vector<r_pair *> array,
+                                 r_pair *left_out) {
+  ulong current = 0;
+  ulong prev = 0;
+  std::vector<r_pair *> rt;
+  std::vector<r_pair *>::iterator iter = array.begin();
+  while (true) {
+    ulong in_pos = nex_jac_number(current, prev);
+    if (in_pos == 1) {
+      rt.push_back((*iter)->rest_smaller);
+      rt.push_back((*iter)->rest_bigger);
+      iter++;
+      continue;
+    }
+    if (in_pos > array.size())
+      in_pos = array.size() - 1;
+    if (prev > array.size())
+      return rt;
+    while (in_pos > prev) {
+
+      for (int i = 0; in_pos > prev + i; i++) {
+        rt.push_back((*iter)->rest_bigger);
+        iter++;
+      }
+
+      std::vector<r_pair *>::iterator in_iter = iter;
+      for (int i = 0; in_pos > prev + 1; i++) {
+        std::vector<r_pair *>::iterator pos = std::lower_bound(
+            rt.begin(),
+            std::find(rt.begin(), rt.end(), (*in_iter)->rest_bigger),
+            (*in_iter)->rest_smaller, r_pair_comp);
+        rt.insert(pos, (*in_iter)->rest_smaller);
+        in_iter--;
+      }
+    }
+  }
+  if (left_out != NULL) {
+    std::vector<r_pair *>::iterator pos = std::lower_bound(
+        rt.begin(), rt.end(), left_out->rest_bigger, r_pair_comp);
+    rt.insert(pos, left_out->rest_bigger);
+    delete left_out;
+  }
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+}
+
 void print_r_pair(r_pair *pair) {
   if (pair == NULL)
     return;
   if (pair->alone == true) {
-    std::cout << "[" << pair->bigger << "]";
+    if (pair->rest_bigger == NULL) {
+      std::cout << "[" << pair->bigger << "]";
+      return;
+    }
+    print_r_pair(pair->rest_bigger);
     return;
   }
 
@@ -113,20 +207,118 @@ void print_r_pair(r_pair *pair) {
   std::cout << "]";
 }
 
-void vec_pmerge_me(std::vector<int> &vec) {
-  auto tmp = create_pair(vec);
+std::vector<int> reconstruct_vec(std::vector<r_pair *> con) {
+  std::vector<int> rt;
+  for (std::vector<r_pair *>::iterator i = con.begin(); i != con.end(); i++) {
+    rt.push_back((*i)->bigger);
+  }
+  return (rt);
+}
+
+/*
+std::vector<r_pair *> last_insercion(std::vector<r_pair *> array,
+                                     r_pair *left_out) {
+  ulong current = 0;
+  ulong prev = 0;
+  std::vector<r_pair *> rt;
+  std::vector<r_pair *>::iterator iter = array.begin();
+  while (true) {
+    ulong in_pos = nex_jac_number(current, prev);
+    if (in_pos == 1) {
+      rt.push_back((*iter)->rest_smaller);
+      rt.push_back((*iter)->rest_bigger);
+      iter++;
+      continue;
+    }
+    if (in_pos > array.size())
+      in_pos = array.size() - 1;
+    if (prev > array.size())
+      return rt;
+    while (in_pos > prev) {
+
+      for (int i = 0; in_pos > prev + i; i++) {
+        rt.push_back((*iter)->rest_bigger);
+        iter++;
+      }
+
+      std::vector<r_pair *>::iterator in_iter = iter;
+      for (int i = 0; in_pos > prev + 1; i++) {
+        std::vector<r_pair *>::iterator pos = std::lower_bound(
+            rt.begin(),
+            std::find(rt.begin(), rt.end(), (*in_iter)->rest_bigger),
+            (*in_iter)->rest_smaller, r_pair_comp);
+        rt.insert(pos, (*in_iter)->rest_smaller);
+        in_iter--;
+      }
+    }
+  }
+  if (left_out != NULL) {
+    std::vector<r_pair *>::iterator pos = std::lower_bound(
+        rt.begin(), rt.end(), left_out->rest_bigger, r_pair_comp);
+    rt.insert(pos, left_out->rest_bigger);
+    delete left_out;
+  }
+  for (std::vector<r_pair *>::iterator i = array.begin(); i != array.end();
+       i++) {
+    delete *i;
+  }
+}
+*/
+
+std::vector<int> vec_pmerge_me(std::vector<int> &vec) {
+
+  // auto hehe = jac_sequence_n(9);
+  // print_c(hehe);
+  // return;
+  auto pair = create_pair(vec);
   std::vector<r_pair *> left_out;
-  std::cout << '\n';
-  while (tmp.size() != 1) {
-    if ((*(--tmp.end()))->alone) {
-      left_out.push_back(*tmp.end()--);
+  std::cout << (pair.back())->alone << " :alone\n";
+  if (pair.back()->alone == true) {
+    left_out.push_back(pair.back());
+    pair.pop_back();
+  } else {
+    left_out.push_back(NULL);
+  }
+  std::cout << std::endl;
+  while (pair.empty() == false && pair[0]->rest_bigger != NULL) {
+    pair = create_pair(pair);
+    std::cout << pair.back()->alone << " :alone\n";
+    if (pair.back()->alone == true) {
+      left_out.push_back(pair.back());
+      pair.pop_back();
     } else {
       left_out.push_back(NULL);
     }
-    tmp = create_pair(tmp);
   }
-  // print_r_pair(tmp[0]);
-  auto hehe = jac_sequence_n(9);
-  print_c(hehe);
-  std::cout << std::endl;
+  print_r_pair(pair[0]);
+  while (pair[0]->rest_smaller != NULL) {
+    pair = insertions(pair, left_out.back());
+    // for (int i = 0; i < pair.size(); i++) {
+    //   if (pair[i] != NULL) {
+    //     std::cout << "\n" << i << " = i\n";
+    //     print_r_pair(pair[i]);
+    //     std::cout << "\n";
+    //   } else {
+    //     std::cout << "[NULL]\n";
+    //   }
+    // }
+    left_out.pop_back();
+  }
+
+  std::vector<int> rt = reconstruct_vec(pair);
+  // std::cout << rt.size() << std::endl;
+  print_c(rt);
+  return (rt);
+  // std::cout << left_out.size() << std::endl;
+  // for (int i =  0; i < left_out.size(); i++) {
+  //   if (left_out[i]  != NULL) {
+  //     print_r_pair(left_out[i]);
+  //     std::cout << "\n";
+  //   } else {
+  //     std::cout << "[NULL]\n";
+  //   }
+  // }
+  // auto hehe = jac_sequence_n(9);
+  // print_c(hehe);
+  // std::cout << std::endl;
 }

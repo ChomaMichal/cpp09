@@ -26,10 +26,14 @@ std::vector<int> process_input(char **argv) {
 
 int main(int argc, char **argv) {
   try {
+    if (argc == 1) {
+      std::cerr << "Give numbers as arguments" << std::endl;
+      return 1;
+    }
     std::vector<int> vec = process_input(argv);
     // print_c(vec);
 
-    vec_pmerge_me(vec);
+    vec = vec_pmerge_me(vec);
   } catch (std::exception &e) {
     std::cerr << e.what() << std::endl;
   }

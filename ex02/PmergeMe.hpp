@@ -12,7 +12,7 @@ typedef struct r_pair {
 
 std::vector<r_pair *> create_pair(std::vector<r_pair> &pairs);
 std::vector<r_pair *> create_pair(std::vector<int> &pairs);
-void vec_pmerge_me(std::vector<int> &vec);
+std::vector<int> vec_pmerge_me(std::vector<int> &vec);
 
 void print_r_pair(r_pair *pair);
 

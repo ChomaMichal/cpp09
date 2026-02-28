@@ -1,7 +1,7 @@
-NAME = RPN
+NAME = PmergeMe
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -std=c++98 -g
-FILES = main.cpp, PmergeMe.cpp
+FILES = main.cpp PmergeMe.cpp
 HFILES = PmergeMe.hpp
 		
 
@@ -25,4 +25,9 @@ fclean : clean
 
 re : fclean all
 
-.PHONY: all re fclean clean
+debug :$(HFILES) 
+	$(CC) -Wextra -Wall -g -DDEBUG $(FILES) -o debug
+
+debugr: debug
+	./debug
+.PHONY: all re fclean clean debug
